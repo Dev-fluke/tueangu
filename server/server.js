@@ -3,9 +3,16 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { getNote, saveNote, clearNote, isSupabase } = require('./database');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' }
+});
 
 // Middleware
 app.use(cors());
@@ -73,7 +80,15 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(PORT, () => {
+// WebSocket for real-time collaboration
+io.on('connection', (socket) => {
+  // When a user types or saves, they broadcast the new text
+  socket.on('note_update', (content) => {
+    socket.broadcast.emit('note_update', content);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📊 Database provider: ${isSupabase ? 'Supabase' : 'SQLite'}`);
 });

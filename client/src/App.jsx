@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
+const socket = io(); // Connects to the same origin
 
 export default function App() {
   const [content, setContent] = useState('');
@@ -38,6 +40,18 @@ export default function App() {
     }
 
     fetchNote();
+  }, []);
+
+  // Listen for real-time updates from other users
+  useEffect(() => {
+    socket.on('note_update', (newText) => {
+      setContent(newText);
+      lastSavedContentRef.current = newText;
+    });
+
+    return () => {
+      socket.off('note_update');
+    };
   }, []);
 
   // Auto-focus the cursor in the body immediately on mount & after loading
@@ -83,6 +97,9 @@ export default function App() {
     setContent(newText);
     setSaveStatus('typing');
 
+    // Broadcast real-time change instantly to others
+    socket.emit('note_update', newText);
+
     // Clear previous timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -117,6 +134,8 @@ export default function App() {
         setSaveStatus('saved');
         setLastSavedTime(new Date());
         setShowClearConfirm(false);
+        socket.emit('note_update', '');
+        
         // Refocus textarea with cursor ready
         setTimeout(() => {
           if (textareaRef.current) {
