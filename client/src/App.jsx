@@ -47,11 +47,36 @@ export default function App() {
     socket.on('note_update', (newText) => {
       setContent(newText);
       lastSavedContentRef.current = newText;
+
+      // Show notification badge if the app is not in focus
+      if (document.visibilityState === 'hidden') {
+        document.title = '(🔴) มีข้อความใหม่ - ช่วยเตือนกู';
+        
+        // Use PWA Badging API if supported (shows red dot on app icon)
+        if ('setAppBadge' in navigator) {
+          navigator.setAppBadge(1).catch(console.error);
+        }
+      }
     });
 
     return () => {
       socket.off('note_update');
     };
+  }, []);
+
+  // Clear badge when user comes back to the app
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        document.title = 'ช่วยเตือนกู';
+        if ('clearAppBadge' in navigator) {
+          navigator.clearAppBadge().catch(console.error);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   // Auto-focus the cursor in the body immediately on mount & after loading
