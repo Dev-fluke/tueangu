@@ -65,12 +65,15 @@ export default function App() {
         setSaveStatus('saved');
         setLastSavedTime(new Date());
       } else {
-        console.error('Save failed from server:', data.error || data.message);
+        const errorMsg = data.error || data.message;
+        console.error('Save failed from server:', errorMsg);
         setSaveStatus('error');
+        alert('บันทึกไม่สำเร็จ: ' + (typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg));
       }
     } catch (err) {
       console.error('Auto-save error:', err);
       setSaveStatus('error');
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
     }
   }, []);
 
