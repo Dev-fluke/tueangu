@@ -1,7 +1,11 @@
 const path = require('path');
 require('dotenv').config();
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+let SUPABASE_URL = process.env.SUPABASE_URL;
+if (SUPABASE_URL) {
+  // If user accidentally copied the REST URL with /rest/v1, strip it down to the base URL
+  SUPABASE_URL = SUPABASE_URL.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+}
 const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const isSupabase = Boolean(SUPABASE_URL && SUPABASE_KEY);
