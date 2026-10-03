@@ -65,6 +65,7 @@ export default function App() {
         setSaveStatus('saved');
         setLastSavedTime(new Date());
       } else {
+        console.error('Save failed from server:', data.error || data.message);
         setSaveStatus('error');
       }
     } catch (err) {
@@ -119,6 +120,9 @@ export default function App() {
             textareaRef.current.focus();
           }
         }, 50);
+      } else {
+        console.error('Clear failed from server:', data.error || data.message);
+        setSaveStatus('error');
       }
     } catch (err) {
       console.error('Clear error:', err);
@@ -220,9 +224,12 @@ export default function App() {
           }}
         >
           {initialLoading ? (
-            <div className="flex-1 flex items-center justify-center text-gray-400 gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-black" />
-              <span>กำลังโหลดข้อมูล...</span>
+            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6">
+              <Loader2 className="w-12 h-12 animate-spin text-black mb-5" />
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 text-center">กำลังปลุกระบบ...</h2>
+              <p className="text-sm sm:text-base text-gray-500 text-center max-w-sm leading-relaxed">
+                เนื่องจากเป็นบริการฟรีบน Render เซิร์ฟเวอร์อาจใช้เวลาตื่น <strong>30-50 วินาที</strong> ในการโหลดครั้งแรก<br/><br/>โปรดรอสักครู่ครับ 🚀
+              </p>
             </div>
           ) : (
             <textarea

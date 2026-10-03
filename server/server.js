@@ -42,7 +42,11 @@ app.post('/api/note', async (req, res) => {
     res.json({ success: true, data: saved, message: 'บันทึกสำเร็จแล้ว' });
   } catch (error) {
     console.error('Error saving note:', error);
-    res.status(500).json({ success: false, message: 'บันทึกข้อมูลไม่สำเร็จ' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'บันทึกข้อมูลไม่สำเร็จ', 
+      error: error.message || error 
+    });
   }
 });
 
