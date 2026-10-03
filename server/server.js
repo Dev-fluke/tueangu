@@ -61,7 +61,7 @@ app.post('/api/note/clear', async (req, res) => {
 const distPath = path.join(__dirname, '../client/dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith('/api')) {
       return next();
     }
