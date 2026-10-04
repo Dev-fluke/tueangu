@@ -270,25 +270,16 @@ export default function App() {
             }
           }}
         >
-          {initialLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6">
-              <Loader2 className="w-12 h-12 animate-spin text-black mb-5" />
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 text-center">กำลังปลุกระบบ...</h2>
-              <p className="text-sm sm:text-base text-gray-500 text-center max-w-sm leading-relaxed">
-                เนื่องจากเป็นบริการฟรีบน Render เซิร์ฟเวอร์อาจใช้เวลาตื่น <strong>30-50 วินาที</strong> ในการโหลดครั้งแรก<br/><br/>โปรดรอสักครู่ครับ 🚀
-              </p>
-            </div>
-          ) : (
-            <textarea
-              ref={textareaRef}
-              autoFocus
-              value={content}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              className="w-full h-full p-4 sm:p-6 text-lg sm:text-xl leading-relaxed text-gray-900 bg-transparent resize-none border-none outline-none focus:ring-0 font-sans"
-              spellCheck={false}
-            />
-          )}
+          <textarea
+            ref={textareaRef}
+            autoFocus
+            value={content}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            className="w-full h-full p-4 sm:p-6 text-lg sm:text-xl leading-relaxed text-gray-900 bg-transparent resize-none border-none outline-none focus:ring-0 font-sans"
+            spellCheck={false}
+            disabled={initialLoading}
+          />
 
           {/* Bottom Bar: Action bar & Stats */}
           <footer className="border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 select-none shrink-0">
