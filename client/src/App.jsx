@@ -138,7 +138,6 @@ export default function App() {
         body: JSON.stringify({ text: reminderText, triggerTime: triggerDate.toISOString() })
       });
 
-      alert(`ตั้งปลุกสำเร็จ! จะแจ้งเตือนคุณเวลา ${reminderTime} น.`);
       setShowReminderModal(false);
     } catch (err) {
       console.error(err);

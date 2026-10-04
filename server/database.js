@@ -346,7 +346,7 @@ async function addReminder(text, triggerTime) {
   }
 }
 
-async function getPendingReminders() {
+async function getDueReminders() {
   const now = new Date().toISOString();
   if (isSupabase) {
     const { data } = await supabase.from('reminders').select('*').eq('status', 'pending').lte('trigger_time', now);
@@ -354,6 +354,20 @@ async function getPendingReminders() {
   } else {
     return new Promise((resolve, reject) => {
       sqliteDb.all("SELECT * FROM reminders WHERE status = 'pending' AND trigger_time <= ?", [now], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+}
+
+async function getAllPendingReminders() {
+  if (isSupabase) {
+    const { data } = await supabase.from('reminders').select('*').eq('status', 'pending').order('trigger_time', { ascending: true });
+    return data || [];
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.all("SELECT * FROM reminders WHERE status = 'pending' ORDER BY trigger_time ASC", [], (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
       });
@@ -398,7 +412,8 @@ module.exports = {
   addSubscription,
   getAllSubscriptions,
   addReminder,
-  getPendingReminders,
+  getDueReminders,
+  getAllPendingReminders,
   markReminderSent,
   deleteReminder,
   isSupabase

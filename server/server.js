@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, getVapidKeys, saveVapidKeys, addSubscription, getAllSubscriptions, addReminder, getPendingReminders, markReminderSent, deleteReminder, isSupabase } = require('./database');
+const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, getVapidKeys, saveVapidKeys, addSubscription, getAllSubscriptions, addReminder, getDueReminders, getAllPendingReminders, markReminderSent, deleteReminder, isSupabase } = require('./database');
 const http = require('http');
 const { Server } = require('socket.io');
 const webpush = require('web-push');
@@ -166,7 +166,7 @@ app.post('/api/reminders', async (req, res) => {
 
 app.get('/api/reminders', async (req, res) => {
   try {
-    const pending = await getPendingReminders();
+    const pending = await getAllPendingReminders();
     res.json({ success: true, data: pending });
   } catch (err) {
     console.error(err);
@@ -187,7 +187,7 @@ app.delete('/api/reminders/:id', async (req, res) => {
 // Cron job to check for reminders every minute
 cron.schedule('* * * * *', async () => {
   try {
-    const pending = await getPendingReminders();
+    const pending = await getDueReminders();
     if (pending.length === 0) return;
 
     let keys = await getVapidKeys();
