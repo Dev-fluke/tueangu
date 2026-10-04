@@ -448,16 +448,17 @@ export default function App() {
                 handleImageUpload(file);
               }
             }}
-            className="flex-1 w-full p-4 sm:p-6 text-lg sm:text-xl leading-relaxed text-gray-900 bg-transparent resize-none border-none outline-none focus:ring-0 font-sans"
+            className="flex-1 min-h-0 w-full p-4 sm:p-6 text-lg sm:text-xl leading-relaxed text-gray-900 bg-transparent resize-none border-none outline-none focus:ring-0 font-sans"
             spellCheck={false}
             disabled={initialLoading}
           />
+        </main>
 
-          {/* Bottom Bar: Action bar */}
-          <footer className="border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 select-none shrink-0">
-            
-            {/* Left side: Upload & Camera Buttons */}
-            <div className="flex items-center gap-3">
+        {/* Bottom Bar: Action bar */}
+        <footer className="border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 select-none shrink-0 z-10">
+          
+          {/* Left side: Upload & Camera Buttons */}
+          <div className="flex items-center gap-3">
               {/* Upload Image Button */}
               <input
                 type="file"
@@ -512,7 +513,6 @@ export default function App() {
               </div>
             </div>
           </footer>
-        </main>
       </div>
 
       {/* Lightbox Modal */}
