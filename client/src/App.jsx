@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell, ListAlarm } from 'lucide-react';
+import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell, ListTodo } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -653,7 +653,7 @@ export default function App() {
                 className="flex items-center justify-center p-1.5 sm:p-2 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
                 title="รายการตั้งปลุก"
               >
-                <ListAlarm className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
+                <ListTodo className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
               </button>
             </div>
 
@@ -760,7 +760,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white border-2 sm:border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 max-w-sm w-full rounded-sm max-h-[80vh] flex flex-col">
             <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2 shrink-0">
-              <ListAlarm className="w-5 h-5 text-gray-800" />
+              <ListTodo className="w-5 h-5 text-gray-800" />
               รายการตั้งปลุก
             </h2>
             
