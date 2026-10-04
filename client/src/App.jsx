@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell, ListTodo } from 'lucide-react';
+import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell, ListTodo, Save } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -472,9 +472,8 @@ export default function App() {
                 </span>
               )}
               {saveStatus === 'saved' && (
-                <span className="flex items-center gap-1 text-emerald-600">
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                  บันทึกแล้ว {lastSavedTime ? `(${formatTime(lastSavedTime)})` : ''}
+                <span className="flex items-center text-emerald-600" title={`บันทึกแล้ว ${lastSavedTime ? formatTime(lastSavedTime) : ''}`}>
+                  <Save className="w-4 h-4 stroke-[2.5]" />
                 </span>
               )}
               {saveStatus === 'error' && (
@@ -587,11 +586,10 @@ export default function App() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
+                className="flex items-center justify-center p-1.5 sm:p-2 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
                 title="อัปโหลดรูปภาพ"
               >
                 <ImagePlus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                <span className="font-medium text-sm sm:text-base text-gray-800">แทรกรูป</span>
               </button>
 
               {/* Camera Button */}
@@ -609,11 +607,10 @@ export default function App() {
               />
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
+                className="flex items-center justify-center p-1.5 sm:p-2 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
                 title="ถ่ายรูป"
               >
                 <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
-                <span className="font-medium text-sm sm:text-base text-gray-800">ถ่ายรูป</span>
               </button>
 
               {/* Alarm Button */}
@@ -639,11 +636,10 @@ export default function App() {
                   
                   setShowReminderModal(true);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm ml-auto"
+                className="flex items-center justify-center p-1.5 sm:p-2 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm ml-auto"
                 title="ตั้งปลุก"
               >
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                <span className="font-medium text-sm sm:text-base text-gray-800 hidden sm:inline">ตั้งปลุก</span>
               </button>
 
               {/* Alarm List Button */}
@@ -661,7 +657,7 @@ export default function App() {
               <div className="text-xs">
                 {saveStatus === 'typing' && <span className="text-amber-600 font-medium">กำลังพิมพ์...</span>}
                 {saveStatus === 'saving' && <span className="text-blue-600 font-medium">กำลังบันทึก...</span>}
-                {saveStatus === 'saved' && <span className="text-emerald-600 font-medium flex items-center gap-1"><Check className="w-3.5 h-3.5" /> บันทึกแล้ว</span>}
+                {saveStatus === 'saved' && <span className="text-emerald-600 flex items-center" title="บันทึกแล้ว"><Save className="w-4 h-4 stroke-[2.5]" /></span>}
                 {saveStatus === 'error' && <span className="text-red-600 font-medium">ผิดพลาด</span>}
               </div>
             </div>
