@@ -427,16 +427,9 @@ export default function App() {
                     className="h-32 w-auto object-cover rounded border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" 
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedImage(img.data);
+                      setSelectedImage(img);
                     }}
                   />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.id); }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
-                    title="ลบรูปภาพ"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>
@@ -567,12 +560,27 @@ export default function App() {
           >
             <X className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>
+          
           <img 
-            src={selectedImage} 
+            src={selectedImage.data} 
             alt="enlarged attachment" 
             className="max-w-full max-h-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+
+          <button 
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white p-3 sm:p-4 z-[110] bg-red-600/80 hover:bg-red-600 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพนี้?')) {
+                handleDeleteImage(selectedImage.id);
+                setSelectedImage(null);
+              }
+            }}
+            title="ลบรูปภาพ"
+          >
+            <Trash2 className="w-6 h-6 sm:w-7 sm:h-7" />
+          </button>
         </div>
       )}
 
