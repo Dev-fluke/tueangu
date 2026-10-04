@@ -98,44 +98,69 @@ export default function App() {
       alert('กรุณาอัปโหลดไฟล์รูปภาพเท่านั้นครับ');
       return;
     }
-    // Limit to 2MB to prevent large base64 strings
-    if (file.size > 2 * 1024 * 1024) {
-      alert('ขนาดไฟล์ต้องไม่เกิน 2MB ครับ');
-      return;
-    }
 
     setIsUploading(true);
     try {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Data = reader.result;
-        // Generate random ID
-        const id = Math.random().toString(36).substring(2, 15);
-        
-        const res = await fetch(`${API_BASE}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, data: base64Data })
-        });
-        const json = await res.json();
-        if (json.success) {
-          // fetchImages or rely on socket 'images_updated'
-          // We fetch manually to be safe for current user
-          const imgRes = await fetch(`${API_BASE}/images`);
-          const imgJson = await imgRes.json();
-          if (imgJson.success && imgJson.data) {
-            setImages(imgJson.data);
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = async () => {
+          // บีบอัดรูปภาพ (ลดขนาด) โดยให้กว้างสูงสุด 1200px
+          const MAX_WIDTH = 1200;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
           }
-        } else {
-          alert('อัปโหลดรูปภาพไม่สำเร็จ');
-        }
-        setIsUploading(false);
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // แปลงเป็น JPEG แบบบีบอัด (คุณภาพ 75%)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+          
+          // Generate random ID
+          const id = Math.random().toString(36).substring(2, 15);
+          
+          try {
+            const res = await fetch(`${API_BASE}/images`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id, data: compressedBase64 })
+            });
+            const json = await res.json();
+            if (json.success) {
+              const imgRes = await fetch(`${API_BASE}/images`);
+              const imgJson = await imgRes.json();
+              if (imgJson.success && imgJson.data) {
+                setImages(imgJson.data);
+              }
+            } else {
+              alert('อัปโหลดรูปภาพไม่สำเร็จ');
+            }
+          } catch (e) {
+            console.error('Upload API Error:', e);
+            alert('เกิดข้อผิดพลาดในการส่งรูปลงฐานข้อมูล');
+          } finally {
+            setIsUploading(false);
+          }
+        };
+        img.onerror = () => {
+          alert('ไฟล์รูปภาพอาจเสียหาย');
+          setIsUploading(false);
+        };
+        img.src = reader.result;
       };
       reader.readAsDataURL(file);
     } catch (err) {
-      console.error('Image upload error:', err);
+      console.error('Image processing error:', err);
       setIsUploading(false);
-      alert('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+      alert('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
     }
   };
 
