@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X } from 'lucide-react';
+import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -20,6 +20,7 @@ export default function App() {
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const lastSavedContentRef = useRef('');
 
@@ -451,6 +452,28 @@ export default function App() {
               >
                 <ImagePlus className="w-4 h-4" />
                 <span className="hidden sm:inline">แทรกรูป</span>
+              </button>
+
+              {/* Camera Button */}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                ref={cameraInputRef}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) handleImageUpload(file);
+                  e.target.value = ''; // reset
+                }}
+              />
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors"
+                title="ถ่ายรูป"
+              >
+                <Camera className="w-4 h-4" />
+                <span className="hidden sm:inline">ถ่ายรูป</span>
               </button>
 
               {/* Copy button */}
