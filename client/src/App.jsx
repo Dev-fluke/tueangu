@@ -453,31 +453,11 @@ export default function App() {
             disabled={initialLoading}
           />
 
-          {/* Bottom Bar: Action bar & Stats */}
-          <footer className="border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 select-none shrink-0">
-            {/* Left stats: Characters, words, lines */}
+          {/* Bottom Bar: Action bar */}
+          <footer className="border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 select-none shrink-0">
+            
+            {/* Left side: Upload & Camera Buttons */}
             <div className="flex items-center gap-3">
-              <span>{content.length.toLocaleString('th-TH')} ตัวอักษร</span>
-              <span className="text-gray-300">|</span>
-              <span>
-                {content.trim() ? content.trim().split(/\s+/).length : 0} คำ
-              </span>
-              <span className="text-gray-300">|</span>
-              <span>
-                {content ? content.split('\n').length : 0} บรรทัด
-              </span>
-            </div>
-
-            {/* Mobile save indicator & Copy button */}
-            <div className="flex items-center gap-3">
-              {/* Mobile-only status */}
-              <div className="sm:hidden text-xs">
-                {saveStatus === 'typing' && <span className="text-amber-600 font-medium">กำลังพิมพ์...</span>}
-                {saveStatus === 'saving' && <span className="text-blue-600 font-medium">กำลังบันทึก...</span>}
-                {saveStatus === 'saved' && <span className="text-emerald-600 font-medium">บันทึกแล้ว</span>}
-                {saveStatus === 'error' && <span className="text-red-600 font-medium">ผิดพลาด</span>}
-              </div>
-
               {/* Upload Image Button */}
               <input
                 type="file"
@@ -492,11 +472,11 @@ export default function App() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
                 title="อัปโหลดรูปภาพ"
               >
-                <ImagePlus className="w-4 h-4" />
-                <span className="hidden sm:inline">แทรกรูป</span>
+                <ImagePlus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                <span className="font-medium text-sm sm:text-base text-gray-800">แทรกรูป</span>
               </button>
 
               {/* Camera Button */}
@@ -514,32 +494,22 @@ export default function App() {
               />
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
                 title="ถ่ายรูป"
               >
-                <Camera className="w-4 h-4" />
-                <span className="hidden sm:inline">ถ่ายรูป</span>
+                <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                <span className="font-medium text-sm sm:text-base text-gray-800">ถ่ายรูป</span>
               </button>
+            </div>
 
-              {/* Copy button */}
-              <button
-                onClick={handleCopy}
-                disabled={!content}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 transition-colors"
-                title="คัดลอกข้อความทั้งหมด"
-              >
-                {copied ? (
-                  <>
-                    <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-emerald-600 font-medium">คัดลอกแล้ว</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>คัดลอก</span>
-                  </>
-                )}
-              </button>
+            {/* Right side: Save indicator (Mobile only) */}
+            <div className="flex items-center gap-3 sm:hidden">
+              <div className="text-xs">
+                {saveStatus === 'typing' && <span className="text-amber-600 font-medium">กำลังพิมพ์...</span>}
+                {saveStatus === 'saving' && <span className="text-blue-600 font-medium">กำลังบันทึก...</span>}
+                {saveStatus === 'saved' && <span className="text-emerald-600 font-medium flex items-center gap-1"><Check className="w-3.5 h-3.5" /> บันทึกแล้ว</span>}
+                {saveStatus === 'error' && <span className="text-red-600 font-medium">ผิดพลาด</span>}
+              </div>
             </div>
           </footer>
         </main>
