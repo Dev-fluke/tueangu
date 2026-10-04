@@ -374,6 +374,18 @@ async function markReminderSent(id) {
   }
 }
 
+async function deleteReminder(id) {
+  if (isSupabase) {
+    await supabase.from('reminders').delete().eq('id', id);
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run("DELETE FROM reminders WHERE id = ?", [id], (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+  }
+}
+
 module.exports = {
   getNote,
   saveNote,
@@ -388,5 +400,6 @@ module.exports = {
   addReminder,
   getPendingReminders,
   markReminderSent,
+  deleteReminder,
   isSupabase
 };

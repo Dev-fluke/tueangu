@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell } from 'lucide-react';
+import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell, ListAlarm } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -21,6 +21,8 @@ export default function App() {
 
   // Reminder states
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showReminderListModal, setShowReminderListModal] = useState(false);
+  const [remindersList, setRemindersList] = useState([]);
   const [reminderText, setReminderText] = useState('');
   const [reminderTime, setReminderTime] = useState('');
 
@@ -141,6 +143,33 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert('เกิดข้อผิดพลาดในการตั้งปลุก');
+    }
+  };
+
+  const fetchReminders = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/reminders`);
+      const json = await res.json();
+      if (json.success) setRemindersList(json.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (showReminderListModal) {
+      fetchReminders();
+    }
+  }, [showReminderListModal]);
+
+  const handleDeleteReminder = async (id) => {
+    if (!confirm('คุณต้องการลบการตั้งปลุกนี้ใช่หรือไม่?')) return;
+    try {
+      await fetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' });
+      setRemindersList(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('ไม่สามารถลบการตั้งปลุกได้');
     }
   };
 
@@ -617,6 +646,15 @@ export default function App() {
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
                 <span className="font-medium text-sm sm:text-base text-gray-800 hidden sm:inline">ตั้งปลุก</span>
               </button>
+
+              {/* Alarm List Button */}
+              <button
+                onClick={() => setShowReminderListModal(true)}
+                className="flex items-center justify-center p-1.5 sm:p-2 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm"
+                title="รายการตั้งปลุก"
+              >
+                <ListAlarm className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
+              </button>
             </div>
 
             {/* Right side: Save indicator (Mobile only) */}
@@ -711,6 +749,54 @@ export default function App() {
                 className="px-5 py-2 font-bold text-white bg-black hover:bg-neutral-800 active:bg-neutral-900 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded cursor-pointer flex items-center gap-2"
               >
                 <Check className="w-4 h-4" /> บันทึกเวลา
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reminder List Modal */}
+      {showReminderListModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border-2 sm:border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 max-w-sm w-full rounded-sm max-h-[80vh] flex flex-col">
+            <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2 shrink-0">
+              <ListAlarm className="w-5 h-5 text-gray-800" />
+              รายการตั้งปลุก
+            </h2>
+            
+            <div className="flex-1 overflow-y-auto min-h-0 -mx-2 px-2 scrollbar-hide">
+              {remindersList.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">ไม่มีการตั้งปลุกล่วงหน้า</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {remindersList.map(r => {
+                    const time = new Date(r.trigger_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div key={r.id} className="border border-gray-200 rounded p-3 flex justify-between items-start shadow-sm bg-gray-50">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <div className="font-bold text-amber-600 mb-1">{time} น.</div>
+                          <div className="text-gray-800 text-sm truncate">{r.text}</div>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteReminder(r.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded shrink-0 transition-colors"
+                          title="ลบ"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 mt-2 border-t shrink-0">
+              <button
+                onClick={() => setShowReminderListModal(false)}
+                className="px-5 py-2 font-bold text-gray-800 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 border-2 border-gray-300 rounded cursor-pointer"
+              >
+                ปิดหน้าต่าง
               </button>
             </div>
           </div>

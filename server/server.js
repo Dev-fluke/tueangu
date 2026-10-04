@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, getVapidKeys, saveVapidKeys, addSubscription, getAllSubscriptions, addReminder, getPendingReminders, markReminderSent, isSupabase } = require('./database');
+const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, getVapidKeys, saveVapidKeys, addSubscription, getAllSubscriptions, addReminder, getPendingReminders, markReminderSent, deleteReminder, isSupabase } = require('./database');
 const http = require('http');
 const { Server } = require('socket.io');
 const webpush = require('web-push');
@@ -161,6 +161,26 @@ app.post('/api/reminders', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to add reminder' });
+  }
+});
+
+app.get('/api/reminders', async (req, res) => {
+  try {
+    const pending = await getPendingReminders();
+    res.json({ success: true, data: pending });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get reminders' });
+  }
+});
+
+app.delete('/api/reminders/:id', async (req, res) => {
+  try {
+    await deleteReminder(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete reminder' });
   }
 });
 
