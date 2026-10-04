@@ -56,6 +56,8 @@ if (isSupabase) {
         if (err) {
           console.error('❌ Error creating images table:', err.message);
         }
+      });
+
       sqliteDb.run(`
         CREATE TABLE IF NOT EXISTS settings (
           key TEXT PRIMARY KEY,
