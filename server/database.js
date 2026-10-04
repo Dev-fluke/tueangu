@@ -56,7 +56,30 @@ if (isSupabase) {
         if (err) {
           console.error('❌ Error creating images table:', err.message);
         }
-      });
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      `);
+      
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subscription TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS reminders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          text TEXT NOT NULL,
+          trigger_time DATETIME NOT NULL,
+          status TEXT DEFAULT 'pending',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
     });
   });
 }
@@ -242,6 +265,113 @@ async function deleteImage(id) {
   }
 }
 
+/**
+ * VAPID Keys logic
+ */
+async function getVapidKeys() {
+  if (isSupabase) {
+    const { data } = await supabase.from('settings').select('value').eq('key', 'vapid_keys').maybeSingle();
+    return data ? JSON.parse(data.value) : null;
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.get("SELECT value FROM settings WHERE key = 'vapid_keys'", [], (err, row) => {
+        if (err) reject(err);
+        else resolve(row ? JSON.parse(row.value) : null);
+      });
+    });
+  }
+}
+
+async function saveVapidKeys(keys) {
+  const value = JSON.stringify(keys);
+  if (isSupabase) {
+    await supabase.from('settings').upsert({ key: 'vapid_keys', value });
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run(
+        `INSERT INTO settings (key, value) VALUES ('vapid_keys', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [value],
+        (err) => { if (err) reject(err); else resolve(); }
+      );
+    });
+  }
+}
+
+/**
+ * Subscriptions logic
+ */
+async function addSubscription(subObj) {
+  const str = JSON.stringify(subObj);
+  if (isSupabase) {
+    await supabase.from('push_subscriptions').insert([{ subscription: str }]);
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run("INSERT INTO push_subscriptions (subscription) VALUES (?)", [str], (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+  }
+}
+
+async function getAllSubscriptions() {
+  if (isSupabase) {
+    const { data } = await supabase.from('push_subscriptions').select('subscription');
+    return (data || []).map(d => JSON.parse(d.subscription));
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.all("SELECT subscription FROM push_subscriptions", [], (err, rows) => {
+        if (err) reject(err);
+        else resolve((rows || []).map(r => JSON.parse(r.subscription)));
+      });
+    });
+  }
+}
+
+/**
+ * Reminders logic
+ */
+async function addReminder(text, triggerTime) {
+  if (isSupabase) {
+    const { data } = await supabase.from('reminders').insert([{ text, trigger_time: triggerTime, status: 'pending' }]).select().single();
+    return data;
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run("INSERT INTO reminders (text, trigger_time, status) VALUES (?, ?, 'pending')", [text, triggerTime], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, text, trigger_time: triggerTime, status: 'pending' });
+      });
+    });
+  }
+}
+
+async function getPendingReminders() {
+  const now = new Date().toISOString();
+  if (isSupabase) {
+    const { data } = await supabase.from('reminders').select('*').eq('status', 'pending').lte('trigger_time', now);
+    return data || [];
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.all("SELECT * FROM reminders WHERE status = 'pending' AND trigger_time <= ?", [now], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+}
+
+async function markReminderSent(id) {
+  if (isSupabase) {
+    await supabase.from('reminders').update({ status: 'sent' }).eq('id', id);
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run("UPDATE reminders SET status = 'sent' WHERE id = ?", [id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+}
+
 module.exports = {
   getNote,
   saveNote,
@@ -249,5 +379,12 @@ module.exports = {
   getImages,
   addImage,
   deleteImage,
+  getVapidKeys,
+  saveVapidKeys,
+  addSubscription,
+  getAllSubscriptions,
+  addReminder,
+  getPendingReminders,
+  markReminderSent,
   isSupabase
 };

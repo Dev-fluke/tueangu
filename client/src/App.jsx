@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera } from 'lucide-react';
+import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X, Camera, Bell } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -18,6 +18,11 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // Reminder states
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderText, setReminderText] = useState('');
+  const [reminderTime, setReminderTime] = useState('');
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -57,6 +62,87 @@ export default function App() {
 
     fetchData();
   }, []);
+
+  // Service Worker and Web Push
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker Registered!');
+      }).catch(err => console.error('SW registration failed', err));
+
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.type === 'SPEAK') {
+          const utterance = new SpeechSynthesisUtterance(event.data.text);
+          utterance.lang = 'th-TH';
+          // Add a gentle beep before speaking (optional, using Web Audio API or just speech)
+          const beep = new SpeechSynthesisUtterance('แจ้งเตือน,');
+          beep.lang = 'th-TH';
+          window.speechSynthesis.speak(beep);
+          window.speechSynthesis.speak(utterance);
+        }
+      });
+    }
+  }, []);
+
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+    return outputArray;
+  };
+
+  const handleSetReminder = async () => {
+    if (!reminderText || !reminderTime) return alert('กรุณากรอกข้อความและเวลา');
+    
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return alert('กรุณาอนุญาตการแจ้งเตือนเพื่อใช้งานฟีเจอร์นี้นะครับ');
+    }
+
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let subscription = await reg.pushManager.getSubscription();
+      
+      if (!subscription) {
+        const response = await fetch(`${API_BASE}/vapidPublicKey`);
+        const { publicKey } = await response.json();
+        const convertedVapidKey = urlBase64ToUint8Array(publicKey);
+
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey
+        });
+
+        await fetch(`${API_BASE}/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription })
+        });
+      }
+
+      const [hours, minutes] = reminderTime.split(':');
+      const triggerDate = new Date();
+      triggerDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      
+      if (triggerDate < new Date()) {
+        triggerDate.setDate(triggerDate.getDate() + 1);
+      }
+
+      await fetch(`${API_BASE}/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: reminderText, triggerTime: triggerDate.toISOString() })
+      });
+
+      alert(`ตั้งปลุกสำเร็จ! จะแจ้งเตือนคุณเวลา ${reminderTime} น.`);
+      setShowReminderModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการตั้งปลุก');
+    }
+  };
 
   // Listen for real-time updates from other users
   useEffect(() => {
@@ -501,6 +587,36 @@ export default function App() {
                 <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
                 <span className="font-medium text-sm sm:text-base text-gray-800">ถ่ายรูป</span>
               </button>
+
+              {/* Alarm Button */}
+              <button
+                onClick={() => {
+                  let text = '';
+                  if (window.getSelection) {
+                    text = window.getSelection().toString().trim();
+                  }
+                  if (!text && textareaRef.current) {
+                    text = textareaRef.current.value.substring(
+                      textareaRef.current.selectionStart, 
+                      textareaRef.current.selectionEnd
+                    ).trim();
+                  }
+                  setReminderText(text || content.substring(0, 50)); // Default to first 50 chars if no selection
+                  
+                  // Default time to next hour
+                  const d = new Date();
+                  d.setHours(d.getHours() + 1);
+                  d.setMinutes(0);
+                  setReminderTime(d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
+                  
+                  setShowReminderModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors shadow-sm ml-auto"
+                title="ตั้งปลุก"
+              >
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+                <span className="font-medium text-sm sm:text-base text-gray-800 hidden sm:inline">ตั้งปลุก</span>
+              </button>
             </div>
 
             {/* Right side: Save indicator (Mobile only) */}
@@ -551,6 +667,53 @@ export default function App() {
           >
             <Trash2 className="w-6 h-6 sm:w-7 sm:h-7" />
           </button>
+        </div>
+      )}
+
+      {/* Reminder Modal */}
+      {showReminderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border-2 sm:border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 max-w-sm w-full rounded-sm">
+            <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-amber-500" />
+              ตั้งเวลาปลุกเตือนความจำ
+            </h2>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">ข้อความที่จะให้แจ้งเตือน</label>
+              <textarea 
+                value={reminderText}
+                onChange={(e) => setReminderText(e.target.value)}
+                className="w-full border-2 border-gray-300 rounded p-2 text-gray-900 focus:border-black focus:ring-0 outline-none resize-none"
+                rows="2"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">เวลา (ชม:นาที)</label>
+              <input 
+                type="time" 
+                value={reminderTime}
+                onChange={(e) => setReminderTime(e.target.value)}
+                className="w-full border-2 border-gray-300 rounded p-2 text-gray-900 focus:border-black focus:ring-0 outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowReminderModal(false)}
+                className="px-4 py-2 font-medium text-gray-700 hover:bg-gray-100 border-2 border-transparent rounded cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSetReminder}
+                className="px-5 py-2 font-bold text-white bg-black hover:bg-neutral-800 active:bg-neutral-900 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded cursor-pointer flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" /> บันทึกเวลา
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

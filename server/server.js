@@ -2,9 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, isSupabase } = require('./database');
+const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, getVapidKeys, saveVapidKeys, addSubscription, getAllSubscriptions, addReminder, getPendingReminders, markReminderSent, isSupabase } = require('./database');
 const http = require('http');
 const { Server } = require('socket.io');
+const webpush = require('web-push');
+const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -123,6 +125,71 @@ io.on('connection', (socket) => {
   socket.on('note_update', (content) => {
     socket.broadcast.emit('note_update', content);
   });
+});
+
+// Push Notifications Setup
+app.get('/api/vapidPublicKey', async (req, res) => {
+  try {
+    let keys = await getVapidKeys();
+    if (!keys) {
+      keys = webpush.generateVAPIDKeys();
+      await saveVapidKeys(keys);
+    }
+    res.json({ publicKey: keys.publicKey });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get VAPID keys' });
+  }
+});
+
+app.post('/api/subscribe', async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    await addSubscription(subscription);
+    res.status(201).json({});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
+});
+
+app.post('/api/reminders', async (req, res) => {
+  try {
+    const { text, triggerTime } = req.body;
+    await addReminder(text, triggerTime);
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add reminder' });
+  }
+});
+
+// Cron job to check for reminders every minute
+cron.schedule('* * * * *', async () => {
+  try {
+    const pending = await getPendingReminders();
+    if (pending.length === 0) return;
+
+    let keys = await getVapidKeys();
+    if (!keys) return;
+    
+    webpush.setVapidDetails('mailto:test@example.com', keys.publicKey, keys.privateKey);
+    const subscriptions = await getAllSubscriptions();
+
+    for (let reminder of pending) {
+      const payload = JSON.stringify({ title: 'ช่วยเตือนกู ⏰', body: reminder.text });
+      for (let sub of subscriptions) {
+        try {
+          await webpush.sendNotification(sub, payload);
+        } catch (err) {
+          console.error('Error sending push to a subscription', err);
+        }
+      }
+      await markReminderSent(reminder.id);
+    }
+  } catch (err) {
+    console.error('Cron job error:', err);
+  }
 });
 
 server.listen(PORT, () => {

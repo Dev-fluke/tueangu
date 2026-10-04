@@ -15,8 +15,10 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
+    "node-cron": "^4.6.0",
     "socket.io": "^4.8.4",
     "sqlite3": "^6.0.1",
-    "tueangu": "file:.."
+    "tueangu": "file:..",
+    "web-push": "^3.6.7"
   }
 }
