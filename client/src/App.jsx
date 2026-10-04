@@ -17,6 +17,7 @@ export default function App() {
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -165,6 +166,24 @@ export default function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
+
+  // Handle native zoom via viewport meta tag for Lightbox
+  useEffect(() => {
+    let metaViewport = document.querySelector('meta[name=viewport]');
+    if (!metaViewport) {
+      metaViewport = document.createElement('meta');
+      metaViewport.name = 'viewport';
+      document.head.appendChild(metaViewport);
+    }
+    
+    if (selectedImage) {
+      // Allow zoom when lightbox is open
+      metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover';
+    } else {
+      // Disallow zoom normally
+      metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    }
+  }, [selectedImage]);
 
   // Auto-focus the cursor in the body immediately on mount & after loading
   useEffect(() => {
@@ -377,7 +396,15 @@ export default function App() {
             <div className="w-full flex gap-3 overflow-x-auto p-4 sm:p-6 pb-0 scrollbar-hide">
               {images.map(img => (
                 <div key={img.id} className="relative group shrink-0">
-                  <img src={img.data} alt="note attachment" className="h-32 w-auto object-cover rounded border border-gray-200 shadow-sm" />
+                  <img 
+                    src={img.data} 
+                    alt="note attachment" 
+                    className="h-32 w-auto object-cover rounded border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImage(img.data);
+                    }}
+                  />
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.id); }}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
@@ -499,6 +526,30 @@ export default function App() {
           </footer>
         </main>
       </div>
+
+      {/* Lightbox Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white p-2 z-[110] bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedImage(null);
+            }}
+          >
+            <X className="w-6 h-6 sm:w-8 sm:h-8" />
+          </button>
+          <img 
+            src={selectedImage} 
+            alt="enlarged attachment" 
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Confirmation Modal when clicking "ล้าง" with text */}
       {showClearConfirm && (
