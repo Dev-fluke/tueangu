@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Trash2, Copy, CheckCheck, RefreshCw, AlertCircle, ImagePlus, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -12,15 +12,22 @@ export default function App() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  
+  // Image states
+  const [images, setImages] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const lastSavedContentRef = useRef('');
 
   // Initial load from SQLite database
   useEffect(() => {
-    async function fetchNote() {
+    async function fetchData() {
       try {
+        // Fetch Note
         const res = await fetch(`${API_BASE}/note`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -31,15 +38,22 @@ export default function App() {
             setLastSavedTime(new Date(json.data.updated_at));
           }
         }
+        
+        // Fetch Images
+        const imgRes = await fetch(`${API_BASE}/images`);
+        const imgJson = await imgRes.json();
+        if (imgJson.success && imgJson.data) {
+          setImages(imgJson.data);
+        }
       } catch (err) {
-        console.error('Failed to load note:', err);
+        console.error('Failed to load data:', err);
         setSaveStatus('error');
       } finally {
         setInitialLoading(false);
       }
     }
 
-    fetchNote();
+    fetchData();
   }, []);
 
   // Listen for real-time updates from other users
@@ -59,10 +73,82 @@ export default function App() {
       }
     });
 
+    socket.on('images_updated', async () => {
+      try {
+        const imgRes = await fetch(`${API_BASE}/images`);
+        const imgJson = await imgRes.json();
+        if (imgJson.success && imgJson.data) {
+          setImages(imgJson.data);
+        }
+      } catch (err) {
+        console.error('Failed to sync images:', err);
+      }
+    });
+
     return () => {
       socket.off('note_update');
+      socket.off('images_updated');
     };
   }, []);
+
+  const handleImageUpload = async (file) => {
+    if (!file || !file.type.startsWith('image/')) {
+      alert('กรุณาอัปโหลดไฟล์รูปภาพเท่านั้นครับ');
+      return;
+    }
+    // Limit to 2MB to prevent large base64 strings
+    if (file.size > 2 * 1024 * 1024) {
+      alert('ขนาดไฟล์ต้องไม่เกิน 2MB ครับ');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result;
+        // Generate random ID
+        const id = Math.random().toString(36).substring(2, 15);
+        
+        const res = await fetch(`${API_BASE}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, data: base64Data })
+        });
+        const json = await res.json();
+        if (json.success) {
+          // fetchImages or rely on socket 'images_updated'
+          // We fetch manually to be safe for current user
+          const imgRes = await fetch(`${API_BASE}/images`);
+          const imgJson = await imgRes.json();
+          if (imgJson.success && imgJson.data) {
+            setImages(imgJson.data);
+          }
+        } else {
+          alert('อัปโหลดรูปภาพไม่สำเร็จ');
+        }
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setIsUploading(false);
+      alert('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+    }
+  };
+
+  const handleDeleteImage = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/images/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setImages(prev => prev.filter(img => img.id !== id));
+      }
+    } catch (err) {
+      console.error('Image delete error:', err);
+      alert('ลบรูปภาพไม่สำเร็จ');
+    }
+  };
 
   // Clear badge when user comes back to the app
   useEffect(() => {
@@ -263,20 +349,60 @@ export default function App() {
 
         {/* Note Body Area with immediate cursor */}
         <main
-          className="flex-1 flex flex-col relative bg-white cursor-text"
-          onClick={() => {
-            if (textareaRef.current) {
+          className={`flex-1 flex flex-col relative bg-white cursor-text transition-colors ${isDragging ? 'bg-blue-50/50 ring-inset ring-4 ring-blue-400' : ''}`}
+          onClick={(e) => {
+            // Only focus if clicked directly on main area, not on images or buttons
+            if (e.target.tagName === 'MAIN' && textareaRef.current) {
               textareaRef.current.focus();
             }
           }}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const file = e.dataTransfer.files[0];
+            if (file) handleImageUpload(file);
+          }}
         >
+          {isUploading && (
+            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-100 overflow-hidden z-10">
+              <div className="w-1/3 h-full bg-blue-500 animate-[bounce_1s_infinite_linear]"></div>
+            </div>
+          )}
+
+          {/* Image Gallery */}
+          {images.length > 0 && (
+            <div className="w-full flex gap-3 overflow-x-auto p-4 sm:p-6 pb-0 scrollbar-hide">
+              {images.map(img => (
+                <div key={img.id} className="relative group shrink-0">
+                  <img src={img.data} alt="note attachment" className="h-32 w-auto object-cover rounded border border-gray-200 shadow-sm" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.id); }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                    title="ลบรูปภาพ"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             autoFocus
             value={content}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            className="w-full h-full p-4 sm:p-6 text-lg sm:text-xl leading-relaxed text-gray-900 bg-transparent resize-none border-none outline-none focus:ring-0 font-sans"
+            onPaste={(e) => {
+              const file = e.clipboardData?.files[0];
+              if (file) {
+                e.preventDefault();
+                handleImageUpload(file);
+              }
+            }}
+            className="flex-1 w-full p-4 sm:p-6 text-lg sm:text-xl leading-relaxed text-gray-900 bg-transparent resize-none border-none outline-none focus:ring-0 font-sans"
             spellCheck={false}
             disabled={initialLoading}
           />
@@ -305,6 +431,27 @@ export default function App() {
                 {saveStatus === 'saved' && <span className="text-emerald-600 font-medium">บันทึกแล้ว</span>}
                 {saveStatus === 'error' && <span className="text-red-600 font-medium">ผิดพลาด</span>}
               </div>
+
+              {/* Upload Image Button */}
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) handleImageUpload(file);
+                  e.target.value = ''; // reset
+                }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-white hover:bg-gray-100 active:bg-gray-200 border border-gray-300 text-gray-700 transition-colors"
+                title="อัปโหลดรูปภาพ"
+              >
+                <ImagePlus className="w-4 h-4" />
+                <span className="hidden sm:inline">แทรกรูป</span>
+              </button>
 
               {/* Copy button */}
               <button

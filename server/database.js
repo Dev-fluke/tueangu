@@ -45,6 +45,18 @@ if (isSupabase) {
         INSERT OR IGNORE INTO notes (id, content, updated_at)
         VALUES (1, '', CURRENT_TIMESTAMP)
       `);
+      
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS images (
+          id TEXT PRIMARY KEY,
+          data TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) {
+          console.error('❌ Error creating images table:', err.message);
+        }
+      });
     });
   });
 }
@@ -151,9 +163,91 @@ async function clearNote() {
   }
 }
 
+/**
+ * Get all images
+ */
+async function getImages() {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('images')
+      .select('id, data')
+      .order('created_at', { ascending: true });
+    if (error) {
+      console.error('Supabase getImages error:', error);
+      throw error;
+    }
+    return data || [];
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.all('SELECT id, data FROM images ORDER BY created_at ASC', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+}
+
+/**
+ * Add an image
+ */
+async function addImage(id, dataStr) {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('images')
+      .insert([{ id, data: dataStr }])
+      .select()
+      .single();
+    if (error) {
+      console.error('Supabase addImage error:', error);
+      throw error;
+    }
+    return data;
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run(
+        `INSERT INTO images (id, data) VALUES (?, ?)`,
+        [id, dataStr],
+        function (err) {
+          if (err) reject(err);
+          else resolve({ id, data: dataStr });
+        }
+      );
+    });
+  }
+}
+
+/**
+ * Delete an image
+ */
+async function deleteImage(id) {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('images')
+      .delete()
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+    if (error) {
+      console.error('Supabase deleteImage error:', error);
+      throw error;
+    }
+    return data || { id };
+  } else {
+    return new Promise((resolve, reject) => {
+      sqliteDb.run(`DELETE FROM images WHERE id = ?`, [id], function (err) {
+        if (err) reject(err);
+        else resolve({ id });
+      });
+    });
+  }
+}
+
 module.exports = {
   getNote,
   saveNote,
   clearNote,
+  getImages,
+  addImage,
+  deleteImage,
   isSupabase
 };

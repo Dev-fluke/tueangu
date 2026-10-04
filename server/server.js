@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { getNote, saveNote, clearNote, isSupabase } = require('./database');
+const { getNote, saveNote, clearNote, getImages, addImage, deleteImage, isSupabase } = require('./database');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -16,7 +16,7 @@ const io = new Server(server, {
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -65,6 +65,43 @@ app.post('/api/note/clear', async (req, res) => {
   } catch (error) {
     console.error('Error clearing note:', error);
     res.status(500).json({ success: false, message: 'ล้างข้อมูลไม่สำเร็จ' });
+  }
+});
+
+// --- IMAGES API ---
+
+app.get('/api/images', async (req, res) => {
+  try {
+    const images = await getImages();
+    res.json({ success: true, data: images });
+  } catch (error) {
+    console.error('Error fetching images:', error);
+    res.status(500).json({ success: false, message: 'โหลดรูปภาพไม่สำเร็จ' });
+  }
+});
+
+app.post('/api/images', async (req, res) => {
+  try {
+    const { id, data } = req.body;
+    if (!id || !data) return res.status(400).json({ success: false, message: 'id and data required' });
+    const saved = await addImage(id, data);
+    io.emit('images_updated'); // broadcast to all clients
+    res.json({ success: true, data: saved });
+  } catch (error) {
+    console.error('Error adding image:', error);
+    res.status(500).json({ success: false, message: 'อัปโหลดรูปภาพไม่สำเร็จ' });
+  }
+});
+
+app.delete('/api/images/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await deleteImage(id);
+    io.emit('images_updated'); // broadcast to all clients
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    res.status(500).json({ success: false, message: 'ลบรูปภาพไม่สำเร็จ' });
   }
 });
 
